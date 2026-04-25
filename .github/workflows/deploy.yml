@@ -20,14 +20,11 @@ jobs:
         uses: oven-sh/setup-bun@v1
 
       - name: Install dependencies
-        # אם הקוד בתיקייה פנימית, שנה את ה-'.' לשם התיקייה (למשל './frontend')
         run: bun install
-        working-directory: . 
 
       - name: Build
-        # הוספתי פה פקודה שתעקוף את השגיאות ותבנה ישר
-        run: bun run vite build
-        working-directory: .
+        # הוספנו "bun x" לפני ה-vite כדי שהוא ימצא אותו בטוח
+        run: bun x vite build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -35,7 +32,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # וודא שהנתיב לתיקיית dist נכון
           path: './dist'
 
       - name: Deploy to GitHub Pages
