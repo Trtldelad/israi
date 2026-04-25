@@ -6,4 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-export default defineConfig();
+export default defineConfig({
+  base: '/', // אם יש לך דומיין משלך. אם אתה משתמש בכתובת של גיטהאב, שים פה את שם ה-Repo שלך עם סלאשים כמו '/my-repo/'
+  plugins: [react()], // או מה שיש לך שם
+})
