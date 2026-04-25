@@ -254,5 +254,4 @@
   background: color-mix(in oklab, var(--background) 72%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  }
 }
