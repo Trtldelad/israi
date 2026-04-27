@@ -532,10 +532,6 @@ export function Chat() {
                 <div className="text-4xl md:text-5xl font-semibold tracking-[-0.045em]">
                   How can I help you reply?
                 </div>
-                <p className="mt-3 text-muted-foreground text-[15px]">
-                  Paste a post, drop a screenshot, or pick a starter — I'll draft your response.
-                </p>
-
                 {/* Tone selector mobile */}
                 <div className="mt-5 sm:hidden flex justify-center">
                   <div className="flex items-center gap-1 p-1 rounded-full bg-muted border border-border">
@@ -571,6 +567,12 @@ export function Chat() {
                   ))}
                 </div>
 
+                <button
+                  onClick={() => setSeed(Math.floor(Math.random() * 9999))}
+                  className="mt-5 text-[11px] text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
+                >
+                  <span>↻</span> Refresh
+                </button>
               </div>
             )}
 
