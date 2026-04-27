@@ -1,55 +1,50 @@
-import { useState, type FormEvent } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
+import logo from "@/assets/isr-logo.png";
 
 export function AuthGate() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<0 | 1>(0);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const signInGoogle = async () => {
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: name || email.split("@")[0] },
-            emailRedirectTo: window.location.origin,
-          },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error("Google sign-in failed", {
+          description: result.error instanceof Error ? result.error.message : "Try again",
         });
-        if (error) throw error;
-        toast.success("Welcome to ISR AI", { description: "You're signed in." });
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        setLoading(false);
+        return;
       }
+      // result.redirected -> browser navigates away
     } catch (err) {
-      toast.error("Authentication failed", {
+      toast.error("Sign-in failed", {
         description: err instanceof Error ? err.message : "Try again",
       });
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-background text-foreground">
-      <header className="apple-blur sticky top-0 z-10 border-b border-border opacity-0">
+    <div className="min-h-screen w-full flex flex-col bg-background text-foreground overflow-hidden">
+      {/* Ambient background orbs */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute -top-40 -left-40 size-[520px] rounded-full bg-foreground/[0.04] blur-3xl animate-orb-slow" />
+        <div className="absolute top-1/3 -right-40 size-[600px] rounded-full bg-foreground/[0.05] blur-3xl animate-orb-slower" />
+      </div>
+
+      <header className="apple-blur sticky top-0 z-10 border-b border-border">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 animate-apple-fade opacity-0">
-            <div className="size-7 rounded-[8px] bg-foreground text-background grid place-items-center text-[11px] font-semibold tracking-tight opacity-0">
-              ISR
-            </div>
-            <span className="text-[15px] font-semibold tracking-tight opacity-0">ISR AI</span>
+          <div className="flex items-center gap-2.5 animate-apple-fade">
+            <img src={logo} alt="ISR" className="size-7 rounded-[8px]" width={28} height={28} />
+            <span className="text-[15px] font-semibold tracking-tight">ISR AI</span>
           </div>
-          <div className="text-xs text-muted-foreground hidden sm:block animate-apple-fade opacity-0">
-            Israel context · clarified
+          <div className="text-xs text-muted-foreground hidden sm:block animate-apple-fade">
+            Israel advocacy · clarified
           </div>
         </div>
       </header>
@@ -60,22 +55,22 @@ export function AuthGate() {
             <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-4">
               About the project
             </div>
-            <h1 className="text-5xl lg:text-6xl font-semibold tracking-[-0.04em] leading-[1.02]">
-              Israel context,
+            <h1 className="text-5xl lg:text-6xl font-semibold tracking-[-0.045em] leading-[1.02]">
+              Win the
               <br />
-              <span className="shimmer-text">clarified.</span>
+              <span className="shimmer-text">argument online.</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              A precise assistant built to explain Israel, its history, and current events with
-              clear framing — readable answers, no slogans, no fluff.
+              An Israeli-advocacy AI built for replying smart online — counter antisemitism,
+              demonization, double standards, and Hamas propaganda with short, sharp, factual answers.
             </p>
 
             <div className="mt-10 grid sm:grid-cols-2 gap-3">
               {[
-                { t: "Understands context", d: "Recognizes shorthand like 7.10 → October 7, 2023." },
-                { t: "Built for explaining", d: "Answers framed for clarity, not jargon." },
-                { t: "Right-sized replies", d: "Detailed enough, never bloated." },
-                { t: "Conversation memory", d: "Threads with meaningful, auto-named titles." },
+                { t: "Ready-to-post replies", d: "Short drafts you can paste straight into the thread." },
+                { t: "Spots demonization", d: "Calls out the 3D test: demonization, double standards, delegitimization." },
+                { t: "New & old antisemitism", d: "Knows the tropes — from blood libel to Holocaust inversion." },
+                { t: "Image analysis", d: "Drop a screenshot; it tells you how to respond." },
               ].map((f, i) => (
                 <div
                   key={f.t}
@@ -104,14 +99,15 @@ export function AuthGate() {
         ) : (
           <section className="animate-slide-left">
             <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-4">
-              {mode === "signin" ? "Welcome back" : "Create account"}
+              Sign in
             </div>
-            <h1 className="text-5xl lg:text-6xl font-semibold tracking-[-0.04em] leading-[1.02]">
-              {mode === "signin" ? "Sign in." : "Get started."}
+            <h1 className="text-5xl lg:text-6xl font-semibold tracking-[-0.045em] leading-[1.02]">
+              One tap.
+              <br />
+              <span className="shimmer-text">No passwords.</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              Your conversations are private to you. Sign{" "}
-              {mode === "signin" ? "in" : "up"} to start chatting and keep your history.
+              ISR AI uses Google sign-in only. Your conversations stay private to your account.
             </p>
             <button
               onClick={() => setStep(0)}
@@ -124,98 +120,41 @@ export function AuthGate() {
 
         <section className="animate-apple-up" style={{ animationDelay: "0.15s" }}>
           <div className="rounded-3xl border border-border bg-card p-8 shadow-[var(--shadow-elevated)]">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold tracking-tight">
-                {mode === "signin" ? "Sign in" : "Create account"}
-              </h2>
-              <button
-                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {mode === "signin" ? "Need an account?" : "Have one already?"}
-              </button>
+            <div className="flex items-center gap-3 mb-6">
+              <img src={logo} alt="" className="size-8" width={32} height={32} />
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight leading-tight">Welcome to ISR AI</h2>
+                <div className="text-xs text-muted-foreground">Sign in to start</div>
+              </div>
             </div>
 
-            <form onSubmit={submit} className="space-y-3">
-              {mode === "signup" && (
-                <Field label="Name">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                    className="appleInput"
-                  />
-                </Field>
-              )}
-              <Field label="Email">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
-                  className="appleInput"
-                />
-              </Field>
-              <Field label="Password">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  placeholder="••••••••"
-                  className="appleInput"
-                />
-              </Field>
+            <button
+              onClick={signInGoogle}
+              disabled={loading}
+              className="w-full h-12 rounded-full bg-foreground text-background text-sm font-medium flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:scale-100 shadow-[var(--shadow-soft)]"
+            >
+              <GoogleGlyph />
+              {loading ? "Opening Google…" : "Continue with Google"}
+            </button>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-11 mt-2 rounded-full bg-foreground text-background text-sm font-medium transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:scale-100"
-              >
-                {loading ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
-              </button>
-            </form>
-
-            <p className="text-[11px] text-muted-foreground mt-5 text-center leading-relaxed">
-              By continuing you agree to use ISR AI for informational purposes.
-            </p>
+            <div className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed">
+              By continuing you agree to use ISR AI for online-advocacy purposes.
+              We never post on your behalf.
+            </div>
           </div>
         </section>
       </main>
-
-      <style>{`
-        .appleInput {
-          width: 100%;
-          height: 44px;
-          padding: 0 14px;
-          border-radius: 12px;
-          background: var(--muted);
-          border: 1px solid transparent;
-          color: var(--foreground);
-          font-size: 15px;
-          transition: all 0.25s var(--easing-apple);
-          outline: none;
-        }
-        .appleInput::placeholder { color: var(--muted-foreground); }
-        .appleInput:focus {
-          background: var(--background);
-          border-color: var(--foreground);
-          box-shadow: 0 0 0 4px color-mix(in oklab, var(--foreground) 8%, transparent);
-        }
-      `}</style>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function GoogleGlyph() {
   return (
-    <label className="block">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5 font-medium">
-        {label}
-      </div>
-      {children}
-    </label>
+    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
+      <path fill="#FFF" d="M21.6 12.227c0-.682-.061-1.337-.175-1.966H12v3.72h5.385a4.604 4.604 0 0 1-1.998 3.022v2.51h3.232c1.892-1.743 2.981-4.31 2.981-7.286z"/>
+      <path fill="#FFF" opacity="0.9" d="M12 22c2.7 0 4.964-.895 6.619-2.428l-3.232-2.51c-.896.6-2.041.955-3.387.955-2.605 0-4.81-1.76-5.598-4.124H3.064v2.59A9.997 9.997 0 0 0 12 22z"/>
+      <path fill="#FFF" opacity="0.75" d="M6.402 13.893A6.005 6.005 0 0 1 6.09 12c0-.66.114-1.299.312-1.893V7.518H3.064A9.997 9.997 0 0 0 2 12c0 1.614.387 3.139 1.064 4.482l3.338-2.59z"/>
+      <path fill="#FFF" opacity="0.6" d="M12 5.977c1.47 0 2.787.504 3.823 1.494l2.867-2.867C16.96 2.99 14.696 2 12 2 8.094 2 4.72 4.244 3.064 7.518l3.338 2.59C7.19 7.737 9.395 5.977 12 5.977z"/>
+    </svg>
   );
 }
