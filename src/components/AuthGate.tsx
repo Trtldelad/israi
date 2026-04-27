@@ -3,7 +3,7 @@ import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import logo from "@/assets/isr-logo.png";
 
-export function AuthGate({ onGuest }: { onGuest?: () => void }) {
+export function AuthGate() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<0 | 1>(0);
 
@@ -137,17 +137,9 @@ export function AuthGate({ onGuest }: { onGuest?: () => void }) {
               {loading ? "Opening Google…" : "Continue with Google"}
             </button>
 
-            {onGuest && (
-              <button
-                onClick={onGuest}
-                className="mt-3 w-full h-11 rounded-full border border-border bg-card hover:bg-accent text-sm font-medium transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]"
-              >
-                Continue as guest
-              </button>
-            )}
-
             <div className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed">
-              Sign in to save chats. Guest mode keeps nothing — chats vanish on refresh.
+              By continuing you agree to use ISR AI for online-advocacy purposes.
+              We never post on your behalf.
             </div>
           </div>
         </section>
