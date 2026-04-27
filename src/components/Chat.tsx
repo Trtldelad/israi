@@ -251,10 +251,10 @@ export function Chat() {
       >
         <div className="h-14 flex items-center justify-between px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-[8px] bg-foreground text-background grid place-items-center text-[11px] font-semibold">
+            <div className="size-7 rounded-[8px] bg-foreground text-background grid place-items-center text-[11px] font-semibold opacity-0">
               ISR
             </div>
-            <span className="text-sm font-semibold tracking-tight">ISR AI</span>
+            <span className="text-sm font-semibold tracking-tight opacity-0">ISR AI</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -322,7 +322,7 @@ export function Chat() {
         </div>
 
         <div className="border-t border-sidebar-border p-3 flex items-center gap-3">
-          <div className="size-8 rounded-full bg-foreground text-background grid place-items-center text-xs font-semibold">
+          <div className="size-8 rounded-full bg-foreground text-background grid place-items-center text-base font-serif font-medium shadow-2xl opacity-100">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
@@ -357,10 +357,10 @@ export function Chat() {
           >
             <span className="text-base">☰</span>
           </button>
-          <div className="text-sm font-semibold tracking-tight truncate">
+          <div className="text-sm font-semibold tracking-tight truncate opacity-0 shadow-none">
             {conversations.find((c) => c.id === activeId)?.title || "New chat"}
           </div>
-          <div className="ml-auto text-[11px] text-muted-foreground">
+          <div className="ml-auto text-[11px] text-muted-foreground opacity-0">
             {streaming ? <span className="shimmer-text">Thinking…</span> : "Ready"}
           </div>
         </header>
@@ -369,11 +369,11 @@ export function Chat() {
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6">
             {messages.length === 0 && !streaming && (
               <div className="text-center pt-16 animate-apple-up">
-                <div className="text-4xl md:text-5xl font-semibold tracking-[-0.04em]">
+                <div className="text-4xl md:text-5xl font-semibold tracking-[-0.04em] mx-0 my-0 px-0 mb-[7px] mr-[6px] py-0 pr-[2px] pb-[13px]">
                   How can I help?
                 </div>
                 <p className="mt-3 text-muted-foreground">
-                  Ask anything about Israel — history, current events, or context.
+                  ​
                 </p>
                 <div className="mt-8 grid sm:grid-cols-2 gap-2.5 text-left max-w-xl mx-auto">
                   {[
@@ -439,7 +439,7 @@ export function Chat() {
                 </svg>
               </button>
             </div>
-            <div className="text-[10px] text-muted-foreground text-center mt-2">
+            <div className="text-[10px] text-muted-foreground text-center mt-2 opacity-0">
               ISR AI may produce inaccuracies. Verify key facts independently.
             </div>
           </div>
