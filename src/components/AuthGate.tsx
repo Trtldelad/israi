@@ -40,15 +40,15 @@ export function AuthGate() {
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground">
-      <header className="apple-blur sticky top-0 z-10 border-b border-border">
+      <header className="apple-blur sticky top-0 z-10 border-b border-border opacity-0">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 animate-apple-fade">
-            <div className="size-7 rounded-[8px] bg-foreground text-background grid place-items-center text-[11px] font-semibold tracking-tight">
+          <div className="flex items-center gap-2.5 animate-apple-fade opacity-0">
+            <div className="size-7 rounded-[8px] bg-foreground text-background grid place-items-center text-[11px] font-semibold tracking-tight opacity-0">
               ISR
             </div>
-            <span className="text-[15px] font-semibold tracking-tight">ISR AI</span>
+            <span className="text-[15px] font-semibold tracking-tight opacity-0">ISR AI</span>
           </div>
-          <div className="text-xs text-muted-foreground hidden sm:block animate-apple-fade">
+          <div className="text-xs text-muted-foreground hidden sm:block animate-apple-fade opacity-0">
             Israel context · clarified
           </div>
         </div>
