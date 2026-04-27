@@ -41,8 +41,8 @@ export const Route = createRootRoute({
       { name: "twitter:site", content: "@ISRAI" },
       { name: "twitter:title", content: "ISR AI" },
       { name: "twitter:description", content: "ISR AI was created to promote Israeli advocacy worldwide. The tool is intended to respond to antisemitic comments and posts." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2ee253fe-74a0-4da0-8cd5-430775939792/id-preview-56b5c856--701fef09-7831-4e47-a847-7350a3b38e50.lovable.app-1777132587142.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2ee253fe-74a0-4da0-8cd5-430775939792/id-preview-56b5c856--701fef09-7831-4e47-a847-7350a3b38e50.lovable.app-1777132587142.png" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/mjaZFnf1iuQ6iWEgT3QCzWacQ9m1/social-images/social-1777302719987-43d9f7c7-d2a1-4a55-8d0a-c2143d9f02f8.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/mjaZFnf1iuQ6iWEgT3QCzWacQ9m1/social-images/social-1777302719987-43d9f7c7-d2a1-4a55-8d0a-c2143d9f02f8.webp" },
     ],
     links: [
       {
