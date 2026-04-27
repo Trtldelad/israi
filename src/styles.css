@@ -189,12 +189,35 @@
   50% { opacity: 0; }
   100% { opacity: 0; }
 }
+@keyframes orb-drift {
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  50%  { transform: translate3d(40px,-30px,0) scale(1.08); }
+  100% { transform: translate3d(0,0,0) scale(1); }
+}
+@keyframes orb-drift-2 {
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  50%  { transform: translate3d(-50px,40px,0) scale(1.12); }
+  100% { transform: translate3d(0,0,0) scale(1); }
+}
+@keyframes pop-in {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(-1px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--foreground) 20%, transparent); }
+  100% { box-shadow: 0 0 0 14px color-mix(in oklab, var(--foreground) 0%, transparent); }
+}
 
 .animate-apple-fade { animation: apple-fade-in 0.5s var(--easing-apple) both; }
 .animate-apple-up { animation: apple-fade-up 0.55s var(--easing-apple) both; }
 .animate-apple-scale { animation: apple-scale-in 0.35s var(--easing-apple) both; }
 .animate-slide-left { animation: apple-slide-in-left 0.45s var(--easing-apple) both; }
 .animate-slide-right { animation: apple-slide-in-right 0.45s var(--easing-apple) both; }
+.animate-orb-slow { animation: orb-drift 18s ease-in-out infinite; }
+.animate-orb-slower { animation: orb-drift-2 26s ease-in-out infinite; }
+.animate-pop { animation: pop-in 0.4s var(--easing-apple) both; }
+.animate-pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
 
 .shimmer-text {
   background: linear-gradient(90deg, var(--muted-foreground) 0%, var(--foreground) 50%, var(--muted-foreground) 100%);
