@@ -1,18 +1,82 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import logo from "@/assets/isr-logo.png";
 
 type Conversation = {
   id: string;
   title: string;
   last_message_at: string;
 };
-type Msg = { id?: string; role: "user" | "assistant"; content: string };
+type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+type Msg = { id?: string; role: "user" | "assistant"; content: string; image?: string };
+type Tone = "calm" | "sharp" | "mix";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+// Suggestion pools — rotated dynamically per chat
+const SUGGESTION_POOLS: { tag: string; items: string[] }[] = [
+  {
+    tag: "Counter a post",
+    items: [
+      "Reply to: \"Israel is a settler-colonial state\"",
+      "Reply to: \"From the river to the sea\"",
+      "Reply to: \"Israel is committing genocide\"",
+      "Reply to: \"Zionism is racism\"",
+      "Reply to: \"Israel = apartheid\"",
+      "Reply to: \"Hamas is a resistance movement\"",
+    ],
+  },
+  {
+    tag: "Spot the antisemitism",
+    items: [
+      "Is this antisemitism or fair criticism?",
+      "Explain the 3D test in one paragraph",
+      "Old vs. new antisemitism — give me the difference",
+      "Holocaust inversion — how to call it out",
+      "Blood libel tropes hiding in modern posts",
+    ],
+  },
+  {
+    tag: "Explain & frame",
+    items: [
+      "What 7.10 actually was, in 4 lines",
+      "Why \"ceasefire now\" misses the hostages",
+      "The case for Israel in 6 sentences",
+      "Indigenous peoples — Jews and the land",
+      "Hamas charter — the 3 lines that matter",
+    ],
+  },
+  {
+    tag: "When NOT to reply",
+    items: [
+      "How to spot bad-faith bait online",
+      "Bot accounts — how to recognize them",
+      "When silence wins the argument",
+    ],
+  },
+];
+
+function pickSuggestions(seed: number): string[] {
+  // pick one from each of 4 pools, deterministic per seed
+  const out: string[] = [];
+  for (let i = 0; i < SUGGESTION_POOLS.length; i++) {
+    const pool = SUGGESTION_POOLS[i].items;
+    out.push(pool[(seed + i * 7) % pool.length]);
+  }
+  return out;
+}
+
+const TONES: { key: Tone; label: string; hint: string }[] = [
+  { key: "calm", label: "Calm", hint: "Factual, persuasive to neutrals" },
+  { key: "mix", label: "Balanced", hint: "Factual + confident edge" },
+  { key: "sharp", label: "Sharp", hint: "Direct rebuttals, no apologies" },
+];
 
 export function Chat() {
   const { user, signOut } = useAuth();
@@ -20,10 +84,16 @@ export function Chat() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
+  const [pendingImage, setPendingImage] = useState<string | null>(null); // data URL
   const [streaming, setStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tone, setTone] = useState<Tone>("mix");
+  const [seed, setSeed] = useState<number>(() => Math.floor(Math.random() * 9999));
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const suggestions = useMemo(() => pickSuggestions(seed), [seed]);
 
   const loadConversations = async () => {
     const { data, error } = await supabase
@@ -41,7 +111,13 @@ export function Chat() {
       .eq("conversation_id", cid)
       .order("created_at", { ascending: true });
     if (error) return;
-    setMessages((data ?? []).map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content })));
+    setMessages(
+      (data ?? []).map((m) => ({
+        id: m.id,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }))
+    );
   };
 
   useEffect(() => {
@@ -51,6 +127,8 @@ export function Chat() {
   useEffect(() => {
     if (activeId) void loadMessages(activeId);
     else setMessages([]);
+    // refresh suggestions per conversation switch
+    setSeed(Math.floor(Math.random() * 9999));
   }, [activeId]);
 
   useEffect(() => {
@@ -68,6 +146,8 @@ export function Chat() {
     setActiveId(null);
     setMessages([]);
     setSidebarOpen(false);
+    setPendingImage(null);
+    setSeed(Math.floor(Math.random() * 9999));
     taRef.current?.focus();
   };
 
@@ -84,14 +164,31 @@ export function Chat() {
   const renameConv = async (id: string, currentTitle: string) => {
     const next = window.prompt("Rename conversation", currentTitle);
     if (!next || next.trim() === "") return;
-    const { error } = await supabase.from("conversations").update({ title: next.trim().slice(0, 60) }).eq("id", id);
+    const { error } = await supabase
+      .from("conversations")
+      .update({ title: next.trim().slice(0, 60) })
+      .eq("id", id);
     if (error) return toast.error("Could not rename");
     await loadConversations();
   };
 
+  const onPickImage = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (!f.type.startsWith("image/")) return toast.error("Please choose an image file");
+    if (f.size > 6 * 1024 * 1024) return toast.error("Image too large", { description: "Max 6MB" });
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPendingImage(reader.result as string);
+    };
+    reader.readAsDataURL(f);
+  };
+
   const send = async () => {
     const content = input.trim();
-    if (!content || streaming || !user) return;
+    const img = pendingImage;
+    if ((!content && !img) || streaming || !user) return;
 
     let convId = activeId;
     if (!convId) {
@@ -105,28 +202,49 @@ export function Chat() {
       setActiveId(convId);
     }
 
-    const userMsg: Msg = { role: "user", content };
+    const userMsg: Msg = {
+      role: "user",
+      content: content || (img ? "Analyze this image — what should I respond?" : ""),
+      image: img ?? undefined,
+    };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setPendingImage(null);
     setStreaming(true);
 
-    // Persist user message
+    // Persist user message (store image marker in content if present)
+    const persistedUserContent = userMsg.image
+      ? `${userMsg.content}\n\n[image attached]`
+      : userMsg.content;
     await supabase.from("messages").insert({
       conversation_id: convId,
       user_id: user.id,
       role: "user",
-      content,
+      content: persistedUserContent,
     });
 
-    // Stream assistant response
+    // Build payload for the gateway: convert any image messages to multi-part content
     const history: Msg[] = [...messages, userMsg];
+    const payloadMessages = history.map((m) => {
+      if (m.image) {
+        const parts: ContentPart[] = [
+          { type: "text", text: m.content || "Please analyze this image." },
+          { type: "image_url", image_url: { url: m.image } },
+        ];
+        return { role: m.role, content: parts };
+      }
+      return { role: m.role, content: m.content };
+    });
+
     let assistantText = "";
     const upsertAssistant = (chunk: string) => {
       assistantText += chunk;
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantText } : m));
+          return prev.map((m, i) =>
+            i === prev.length - 1 ? { ...m, content: assistantText } : m
+          );
         }
         return [...prev, { role: "assistant", content: assistantText }];
       });
@@ -142,14 +260,14 @@ export function Chat() {
           Authorization: `Bearer ${token}`,
           apikey: SUPABASE_KEY,
         },
-        body: JSON.stringify({
-          messages: history.map((m) => ({ role: m.role, content: m.content })),
-        }),
+        body: JSON.stringify({ messages: payloadMessages, tone }),
       });
 
       if (!resp.ok || !resp.body) {
-        if (resp.status === 429) toast.error("Rate limited", { description: "Please try again in a moment." });
-        else if (resp.status === 402) toast.error("Out of AI credits", { description: "Add credits in workspace settings." });
+        if (resp.status === 429)
+          toast.error("Rate limited", { description: "Please try again in a moment." });
+        else if (resp.status === 402)
+          toast.error("Out of AI credits", { description: "Add credits in workspace settings." });
         else toast.error("AI error", { description: `Status ${resp.status}` });
         setStreaming(false);
         return;
@@ -186,7 +304,6 @@ export function Chat() {
         }
       }
 
-      // Persist assistant message
       if (assistantText) {
         await supabase.from("messages").insert({
           conversation_id: convId,
@@ -200,13 +317,15 @@ export function Chat() {
           .update({ last_message_at: new Date().toISOString() })
           .eq("id", convId);
 
-        // Title generation if still default or short history
         const currentConv = conversations.find((c) => c.id === convId);
-        const isWeak = !currentConv || currentConv.title === "New chat" || currentConv.title.length < 5;
+        const isWeak =
+          !currentConv || currentConv.title === "New chat" || currentConv.title.length < 5;
         if (isWeak) {
           try {
             const { data: sd } = await supabase.auth.getSession();
             const tk = sd.session?.access_token ?? SUPABASE_KEY;
+            // Only send text history to title fn
+            const titleHist = history.map((m) => ({ role: m.role, content: m.content || "image" }));
             const tr = await fetch(`${SUPABASE_URL}/functions/v1/title`, {
               method: "POST",
               headers: {
@@ -215,7 +334,7 @@ export function Chat() {
                 apikey: SUPABASE_KEY,
               },
               body: JSON.stringify({
-                messages: [...history, { role: "assistant", content: assistantText }].slice(-6),
+                messages: [...titleHist, { role: "assistant", content: assistantText }].slice(-6),
               }),
             });
             if (tr.ok) {
@@ -224,7 +343,9 @@ export function Chat() {
                 await supabase.from("conversations").update({ title }).eq("id", convId);
               }
             }
-          } catch {/* ignore */}
+          } catch {
+            /* ignore */
+          }
         }
         await loadConversations();
       }
@@ -241,20 +362,26 @@ export function Chat() {
     return String(n).trim().slice(0, 1).toUpperCase() || "U";
   }, [user]);
 
+  const avatarUrl: string | undefined = user?.user_metadata?.avatar_url;
+
   return (
-    <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
+    <div className="h-screen w-full flex bg-background text-foreground overflow-hidden relative">
+      {/* Ambient orbs */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-32 -left-32 size-[420px] rounded-full bg-foreground/[0.035] blur-3xl animate-orb-slow" />
+        <div className="absolute bottom-0 right-0 size-[520px] rounded-full bg-foreground/[0.04] blur-3xl animate-orb-slower" />
+      </div>
+
       {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 fixed md:static inset-y-0 left-0 z-30 w-72 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-500 [transition-timing-function:var(--easing-apple)]`}
+        } md:translate-x-0 fixed md:static inset-y-0 left-0 z-30 w-72 bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border flex flex-col transition-transform duration-500 [transition-timing-function:var(--easing-apple)]`}
       >
         <div className="h-14 flex items-center justify-between px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-[8px] bg-foreground text-background grid place-items-center text-[11px] font-semibold opacity-0">
-              ISR
-            </div>
-            <span className="text-sm font-semibold tracking-tight opacity-0">ISR AI</span>
+            <img src={logo} alt="ISR" className="size-7" width={28} height={28} />
+            <span className="text-sm font-semibold tracking-tight">ISR AI</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -322,9 +449,19 @@ export function Chat() {
         </div>
 
         <div className="border-t border-sidebar-border p-3 flex items-center gap-3">
-          <div className="size-8 rounded-full bg-foreground text-background grid place-items-center text-base font-serif font-medium shadow-2xl opacity-100">
-            {initials}
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              className="size-8 rounded-full object-cover"
+              width={32}
+              height={32}
+            />
+          ) : (
+            <div className="size-8 rounded-full bg-foreground text-background grid place-items-center text-base font-serif font-medium shadow-2xl">
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-xs font-medium truncate">
               {user?.user_metadata?.full_name || user?.email}
@@ -357,53 +494,105 @@ export function Chat() {
           >
             <span className="text-base">☰</span>
           </button>
-          <div className="text-sm font-semibold tracking-tight truncate opacity-0 shadow-none">
+          <img src={logo} alt="" className="size-6 md:hidden" width={24} height={24} />
+          <div className="text-sm font-semibold tracking-tight truncate">
             {conversations.find((c) => c.id === activeId)?.title || "New chat"}
           </div>
-          <div className="ml-auto text-[11px] text-muted-foreground opacity-0">
-            {streaming ? <span className="shimmer-text">Thinking…</span> : "Ready"}
+
+          {/* Tone selector */}
+          <div className="ml-auto hidden sm:flex items-center gap-1 p-1 rounded-full bg-muted border border-border">
+            {TONES.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTone(t.key)}
+                title={t.hint}
+                className={`px-3 h-7 rounded-full text-[11px] font-medium transition-all duration-300 ${
+                  tone === t.key
+                    ? "bg-foreground text-background shadow-[var(--shadow-soft)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto thin-scroll">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6">
             {messages.length === 0 && !streaming && (
-              <div className="text-center pt-16 animate-apple-up">
-                <div className="text-4xl md:text-5xl font-semibold tracking-[-0.04em] mx-0 my-0 px-0 mb-[7px] mr-[6px] py-0 pr-[2px] pb-[13px]">
-                  How can I help?
+              <div className="text-center pt-10 animate-apple-up">
+                <img
+                  src={logo}
+                  alt=""
+                  className="mx-auto size-14 mb-5 animate-pop"
+                  width={56}
+                  height={56}
+                />
+                <div className="text-4xl md:text-5xl font-semibold tracking-[-0.045em]">
+                  How can I help you reply?
                 </div>
-                <p className="mt-3 text-muted-foreground">
-                  ​
+                <p className="mt-3 text-muted-foreground text-[15px]">
+                  Paste a post, drop a screenshot, or pick a starter — I'll draft your response.
                 </p>
+
+                {/* Tone selector mobile */}
+                <div className="mt-5 sm:hidden flex justify-center">
+                  <div className="flex items-center gap-1 p-1 rounded-full bg-muted border border-border">
+                    {TONES.map((t) => (
+                      <button
+                        key={t.key}
+                        onClick={() => setTone(t.key)}
+                        className={`px-3 h-7 rounded-full text-[11px] font-medium transition-all duration-300 ${
+                          tone === t.key
+                            ? "bg-foreground text-background"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="mt-8 grid sm:grid-cols-2 gap-2.5 text-left max-w-xl mx-auto">
-                  {[
-                    "Explain what 7.10 refers to",
-                    "Summarize the Israel–Iran tensions",
-                    "Common myths about Israel — fact-checked",
-                    "What is the Abraham Accords?",
-                  ].map((s, i) => (
+                  {suggestions.map((s, i) => (
                     <button
-                      key={s}
+                      key={`${seed}-${s}`}
                       onClick={() => setInput(s)}
-                      className="text-sm text-left p-4 rounded-2xl border border-border bg-card hover:bg-accent transition-all duration-300 hover:-translate-y-0.5"
+                      className="group relative text-sm text-left p-4 rounded-2xl border border-border bg-card hover:bg-accent transition-all duration-300 hover:-translate-y-0.5 overflow-hidden"
                       style={{ animation: `apple-fade-up 0.6s var(--easing-apple) ${0.1 + i * 0.07}s both` }}
                     >
-                      {s}
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                        {SUGGESTION_POOLS[i].tag}
+                      </div>
+                      <div className="font-medium leading-snug">{s}</div>
                     </button>
                   ))}
                 </div>
+
+                <button
+                  onClick={() => setSeed(Math.floor(Math.random() * 9999))}
+                  className="mt-5 text-[11px] text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
+                >
+                  <span>↻</span> Shuffle suggestions
+                </button>
               </div>
             )}
 
             {messages.map((m, i) => (
-              <Bubble key={i} msg={m} streaming={streaming && i === messages.length - 1 && m.role === "assistant"} />
+              <Bubble
+                key={i}
+                msg={m}
+                streaming={streaming && i === messages.length - 1 && m.role === "assistant"}
+              />
             ))}
 
             {streaming && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="flex gap-3 animate-apple-up">
                 <Avatar role="assistant" />
                 <div className="px-4 py-3 rounded-2xl bg-muted text-sm text-muted-foreground">
-                  <span className="shimmer-text">Thinking…</span>
+                  <span className="shimmer-text">Drafting your reply…</span>
                 </div>
               </div>
             )}
@@ -411,9 +600,48 @@ export function Chat() {
         </div>
 
         {/* Composer */}
-        <div className="border-t border-border bg-background">
+        <div className="border-t border-border bg-background/80 backdrop-blur-xl">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
-            <div className="flex items-end gap-2 rounded-3xl border border-border bg-card p-2 pl-4 shadow-[var(--shadow-soft)] focus-within:border-foreground transition-all duration-300">
+            {pendingImage && (
+              <div className="mb-2 inline-flex items-center gap-2 p-1.5 pr-3 rounded-2xl border border-border bg-card animate-pop">
+                <img
+                  src={pendingImage}
+                  alt="attachment"
+                  className="size-12 rounded-xl object-cover"
+                />
+                <span className="text-xs text-muted-foreground">Image ready — describe it or just send</span>
+                <button
+                  onClick={() => setPendingImage(null)}
+                  className="size-6 rounded-full hover:bg-accent grid place-items-center text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Remove image"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-end gap-2 rounded-3xl border border-border bg-card p-2 pl-2 shadow-[var(--shadow-soft)] focus-within:border-foreground transition-all duration-300">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPickImage}
+              />
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={streaming}
+                className="size-9 shrink-0 rounded-full hover:bg-accent grid place-items-center text-muted-foreground hover:text-foreground transition-all duration-300 disabled:opacity-40"
+                aria-label="Attach image"
+                title="Attach image"
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="size-[18px]" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.5V7a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h7" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.5-3.5L9 20" />
+                  <path d="M19 17v6M16 20h6" />
+                </svg>
+              </button>
               <textarea
                 ref={taRef}
                 value={input}
@@ -425,22 +653,32 @@ export function Chat() {
                   }
                 }}
                 rows={1}
-                placeholder="Message ISR AI…"
+                placeholder={pendingImage ? "Add context (optional)…" : "Paste a post or ask what to reply…"}
                 className="flex-1 resize-none bg-transparent outline-none text-[15px] py-2.5 placeholder:text-muted-foreground max-h-[200px] thin-scroll"
               />
               <button
                 onClick={() => void send()}
-                disabled={!input.trim() || streaming}
-                className="size-9 rounded-full bg-foreground text-background grid place-items-center transition-all duration-300 hover:scale-[1.05] active:scale-95 disabled:opacity-40 disabled:scale-100"
+                disabled={(!input.trim() && !pendingImage) || streaming}
+                className={`size-9 shrink-0 rounded-full bg-foreground text-background grid place-items-center transition-all duration-300 hover:scale-[1.05] active:scale-95 disabled:opacity-40 disabled:scale-100 ${
+                  streaming ? "animate-pulse-ring" : ""
+                }`}
                 aria-label="Send"
               >
-                <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="size-4"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
-            <div className="text-[10px] text-muted-foreground text-center mt-2 opacity-0">
-              ISR AI may produce inaccuracies. Verify key facts independently.
+            <div className="text-[10px] text-muted-foreground text-center mt-2">
+              Tone: <span className="text-foreground/80 font-medium">{TONES.find((t) => t.key === tone)?.label}</span> · ISR AI may produce inaccuracies. Verify key facts before posting.
             </div>
           </div>
         </div>
@@ -458,8 +696,8 @@ function Avatar({ role }: { role: "user" | "assistant" }) {
     );
   }
   return (
-    <div className="size-7 shrink-0 rounded-full bg-foreground text-background grid place-items-center text-[10px] font-semibold">
-      ISR
+    <div className="size-7 shrink-0 rounded-full bg-foreground grid place-items-center overflow-hidden">
+      <img src={logo} alt="" className="size-5 invert" width={20} height={20} />
     </div>
   );
 }
@@ -476,6 +714,13 @@ function Bubble({ msg, streaming }: { msg: Msg; streaming: boolean }) {
             : "bg-muted text-foreground px-4 py-3 md-body"
         } ${streaming ? "typing-caret" : ""}`}
       >
+        {msg.image && (
+          <img
+            src={msg.image}
+            alt="attachment"
+            className="mb-2 max-h-64 rounded-xl border border-border"
+          />
+        )}
         {isUser ? msg.content : <ReactMarkdown>{msg.content}</ReactMarkdown>}
       </div>
       {isUser && <Avatar role="user" />}
