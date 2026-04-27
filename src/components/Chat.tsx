@@ -571,12 +571,6 @@ export function Chat() {
                   ))}
                 </div>
 
-                <button
-                  onClick={() => setSeed(Math.floor(Math.random() * 9999))}
-                  className="mt-5 text-[11px] text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
-                >
-                  <span>↻</span> Refresh
-                </button>
               </div>
             )}
 
