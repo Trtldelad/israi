@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { AuthGate } from "@/components/AuthGate";
 import { Chat } from "@/components/Chat";
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { user, loading } = useAuth();
+  const [guest, setGuest] = useState(false);
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
@@ -16,5 +18,7 @@ function Index() {
       </div>
     );
   }
-  return user ? <Chat /> : <AuthGate />;
+  if (user) return <Chat />;
+  if (guest) return <Chat guest onExitGuest={() => setGuest(false)} />;
+  return <AuthGate onGuest={() => setGuest(true)} />;
 }
