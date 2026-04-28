@@ -42,8 +42,8 @@ export function AuthGate({ onGuest }: Props) {
       <header className="apple-blur sticky top-0 z-10 border-b border-border">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 animate-apple-fade">
-            <IsrLogo className="text-foreground" size={28} />
-            <span className="text-[15px] font-semibold tracking-tight">ISR AI</span>
+            <IsrLogo className="text-foreground opacity-0" size={28} />
+            <span className="text-[15px] font-semibold tracking-tight opacity-0">ISR AI</span>
           </div>
           <div className="text-xs text-muted-foreground hidden sm:block animate-apple-fade">
             Israeli information clarified in real time
@@ -94,7 +94,7 @@ export function AuthGate({ onGuest }: Props) {
               {onGuest && (
                 <button
                   onClick={onGuest}
-                  className="h-11 px-5 rounded-full border border-border text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent transition-all duration-300"
+                  className="h-11 px-5 rounded-full border border-border text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent transition-all duration-300 opacity-100"
                 >
                   Continue as guest
                 </button>
@@ -130,7 +130,7 @@ export function AuthGate({ onGuest }: Props) {
         <section className="animate-apple-up" style={{ animationDelay: "0.15s" }}>
           <div className="rounded-3xl border border-border bg-card p-8 shadow-[var(--shadow-elevated)]">
             <div className="flex items-center gap-3 mb-6">
-              <IsrLogo className="text-foreground" size={36} />
+              <IsrLogo className="text-foreground opacity-0" size={36} />
               <div>
                 <h2 className="text-xl font-semibold tracking-tight leading-tight">Welcome to ISR AI</h2>
                 <div className="text-xs text-muted-foreground">Sign in to start</div>
@@ -155,10 +155,7 @@ export function AuthGate({ onGuest }: Props) {
               </button>
             )}
 
-            <div className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed">
-              By continuing you agree to use ISR AI for online advocacy purposes
-              We never post on your behalf guest mode does not save chat history
-            </div>
+            <div className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed">By continuing you agree to use ISR AI for online advocacy purposes</div>
           </div>
         </section>
       </main>
