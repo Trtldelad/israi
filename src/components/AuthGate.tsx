@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import logo from "@/assets/isr-logo.png";
+import { IsrLogo } from "@/assets/IsrLogo";
 
-export function AuthGate() {
+type Props = { onGuest?: () => void };
+
+export function AuthGate({ onGuest }: Props) {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<0 | 1>(0);
 
@@ -40,11 +42,11 @@ export function AuthGate() {
       <header className="apple-blur sticky top-0 z-10 border-b border-border">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 animate-apple-fade">
-            <img src={logo} alt="ISR" className="size-7 rounded-[8px]" width={28} height={28} />
+            <IsrLogo className="text-foreground" size={28} />
             <span className="text-[15px] font-semibold tracking-tight">ISR AI</span>
           </div>
           <div className="text-xs text-muted-foreground hidden sm:block animate-apple-fade">
-            Israel advocacy · clarified
+            Israeli information clarified in real time
           </div>
         </div>
       </header>
@@ -56,21 +58,20 @@ export function AuthGate() {
               About the project
             </div>
             <h1 className="text-5xl lg:text-6xl font-semibold tracking-[-0.045em] leading-[1.02]">
-              Win the
+              Speak Israel
               <br />
-              <span className="shimmer-text">argument online.</span>
+              <span className="shimmer-text">with confidence</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              An Israeli-advocacy AI built for replying smart online — counter antisemitism,
-              demonization, double standards, and Hamas propaganda with short, sharp, factual answers.
+              An AI chat that gives reliable Israeli information in real time pulled from the Israel FAQs knowledge base it answers complex questions from history to apartheid claims and shows you how to phrase a response that is respectful clear and persuasive turning every user into a confident digital advocacy ambassador
             </p>
 
             <div className="mt-10 grid sm:grid-cols-2 gap-3">
               {[
-                { t: "Ready-to-post replies", d: "Short drafts you can paste straight into the thread." },
-                { t: "Spots demonization", d: "Calls out the 3D test: demonization, double standards, delegitimization." },
-                { t: "New & old antisemitism", d: "Knows the tropes — from blood libel to Holocaust inversion." },
-                { t: "Image analysis", d: "Drop a screenshot; it tells you how to respond." },
+                { t: "Sourced from Israel FAQs", d: "Answers come from israelfaqs verified Q and A not invented opinions" },
+                { t: "Phrasing you can paste", d: "Short drafts you can drop into a thread without sounding like a bot" },
+                { t: "Knows the playbook", d: "Spots demonization double standards and modern antisemitism quickly" },
+                { t: "Reads screenshots", d: "Drop an image and it tells you what to reply and what to skip" },
               ].map((f, i) => (
                 <div
                   key={f.t}
@@ -90,6 +91,14 @@ export function AuthGate() {
               >
                 Continue
               </button>
+              {onGuest && (
+                <button
+                  onClick={onGuest}
+                  className="h-11 px-5 rounded-full border border-border text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent transition-all duration-300"
+                >
+                  Continue as guest
+                </button>
+              )}
               <div className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-foreground" />
                 <span className="size-1.5 rounded-full bg-border" />
@@ -121,7 +130,7 @@ export function AuthGate() {
         <section className="animate-apple-up" style={{ animationDelay: "0.15s" }}>
           <div className="rounded-3xl border border-border bg-card p-8 shadow-[var(--shadow-elevated)]">
             <div className="flex items-center gap-3 mb-6">
-              <img src={logo} alt="" className="size-8" width={32} height={32} />
+              <IsrLogo className="text-foreground" size={36} />
               <div>
                 <h2 className="text-xl font-semibold tracking-tight leading-tight">Welcome to ISR AI</h2>
                 <div className="text-xs text-muted-foreground">Sign in to start</div>
@@ -137,9 +146,18 @@ export function AuthGate() {
               {loading ? "Opening Google…" : "Continue with Google"}
             </button>
 
+            {onGuest && (
+              <button
+                onClick={onGuest}
+                className="mt-3 w-full h-11 rounded-full border border-border text-sm font-medium hover:bg-accent transition-all duration-300"
+              >
+                Continue as guest
+              </button>
+            )}
+
             <div className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed">
-              By continuing you agree to use ISR AI for online-advocacy purposes.
-              We never post on your behalf.
+              By continuing you agree to use ISR AI for online advocacy purposes
+              We never post on your behalf guest mode does not save chat history
             </div>
           </div>
         </section>
