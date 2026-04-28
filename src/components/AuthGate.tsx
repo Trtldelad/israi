@@ -45,9 +45,7 @@ export function AuthGate({ onGuest }: Props) {
             <IsrLogo className="text-foreground opacity-0" size={28} />
             <span className="text-[15px] font-semibold tracking-tight opacity-0">ISR AI</span>
           </div>
-          <div className="text-xs text-muted-foreground hidden sm:block animate-apple-fade opacity-0">
-            Israeli information clarified in real time
-          </div>
+          <div className="text-xs text-muted-foreground hidden sm:hidden animate-apple-fade opacity-0" />
         </div>
       </header>
 

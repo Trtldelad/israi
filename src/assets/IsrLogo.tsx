@@ -17,7 +17,7 @@ export function IsrLogo({ className, size = 28 }: Props) {
           <stop offset="1" stopColor="currentColor" stopOpacity="0.78" />
         </linearGradient>
       </defs>
-      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#isr-tile)" />
+      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#isr-tile)" fillOpacity="0" />
       {/* I  S  R rendered as inverted (background-colored) shapes */}
       <g fill="hsl(var(--background))">
         {/* I */}
